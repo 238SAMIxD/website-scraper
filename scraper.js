@@ -1,10 +1,10 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
-const URLParse = require('url-parse');
-const path = require('path');
-const fs = require('fs').promises;
+const axios = require("axios");
+const cheerio = require("cheerio");
+const URLParse = require("url-parse");
+const path = require("path");
+const fs = require("fs").promises;
 
-const LIMIT = 100;
+const LIMIT = 20;
 
 class WebScraper {
   constructor(startUrl) {
@@ -14,7 +14,7 @@ class WebScraper {
     this.visitedUrls = new Set();
     this.foundFiles = {
       pdfs: new Set(),
-      texts: new Set()
+      texts: new Set(),
     };
     this.results = [];
   }
@@ -42,10 +42,13 @@ class WebScraper {
       pdfs: Array.from(this.foundFiles.pdfs),
       texts: Array.from(this.foundFiles.texts),
       visitedPages: Array.from(this.visitedUrls),
-      extractedContent: this.results
+      extractedContent: this.results,
     };
 
-    await fs.writeFile('scraping-results.json', JSON.stringify(output, null, 2));
+    await fs.writeFile(
+      "scraping-results.json",
+      JSON.stringify(output, null, 2)
+    );
   }
 
   async scrape(url = this.startUrl) {
@@ -55,38 +58,37 @@ class WebScraper {
 
     console.log(`Scraping: ${url}`);
     this.visitedUrls.add(url);
-    
 
     try {
       const response = await axios.get(url);
       const $ = cheerio.load(response.data);
 
       // Extract text content
-      const pageText = $('body').text().trim();
+      const pageText = $("body").text().trim();
       this.results.push({
         url,
-        content: pageText
+        content: pageText,
       });
 
       // Find all links
       const links = new Set();
-      $('a').each((_, element) => {
-        let href = $(element).attr('href');
+      $("a").each((_, element) => {
+        let href = $(element).attr("href");
         if (!href) return;
 
         // Handle relative URLs
-        if (href.startsWith('/')) {
+        if (href.startsWith("/")) {
           href = `${this.baseUrl}${href}`;
         }
 
         if (!this.isValidUrl(href)) return;
-        
+
         const ext = path.extname(href).toLowerCase();
-        
+
         // Collect PDF and text files
-        if (ext === '.pdf') {
+        if (ext === ".pdf") {
           this.foundFiles.pdfs.add(href);
-        } else if (ext === '.txt') {
+        } else if (ext === ".txt") {
           this.foundFiles.texts.add(href);
         } else if (this.isSameDomain(href)) {
           links.add(href);
@@ -95,7 +97,7 @@ class WebScraper {
 
       // Recursively scrape found links
       for (const link of links) {
-        if(this.visitedUrls.size >= LIMIT) {
+        if (this.visitedUrls.size >= LIMIT) {
           return;
         }
         if (!this.visitedUrls.has(link)) {
@@ -114,13 +116,14 @@ class WebScraper {
 if (require.main === module) {
   const startUrl = process.argv[2];
   if (!startUrl) {
-    console.error('Please provide a starting URL');
+    console.error("Please provide a starting URL");
     process.exit(1);
   }
 
   const scraper = new WebScraper(startUrl);
-  scraper.scrape()
-    .then(() => console.log('Scraping completed'))
+  scraper
+    .scrape()
+    .then(() => console.log("Scraping completed"))
     .catch(console.error);
 }
 

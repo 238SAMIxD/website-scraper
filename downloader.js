@@ -1,12 +1,12 @@
-const axios = require('axios');
-const fs = require('fs').promises;
-const path = require('path');
-const URLParse = require('url-parse');
+const axios = require("axios");
+const fs = require("fs").promises;
+const path = require("path");
+const URLParse = require("url-parse");
 
 class ContentDownloader {
   constructor() {
-    this.pdfDir = './pdf';
-    this.contentDir = './content';
+    this.pdfDir = "./pdf";
+    this.contentDir = "./content";
   }
 
   async init() {
@@ -16,18 +16,18 @@ class ContentDownloader {
 
   getFilename(url) {
     const parsed = new URLParse(url);
-    const basename = path.basename(parsed.pathname) || 'index';
-    return basename.replace(/[^a-z0-9.-]/gi, '_');
+    const basename = path.basename(parsed.pathname) || "index";
+    return basename.replace(/[^a-z0-9.-]/gi, "_");
   }
 
   async downloadPdf(url) {
     try {
       const response = await axios({
         url,
-        method: 'GET',
-        responseType: 'arraybuffer'
+        method: "GET",
+        responseType: "arraybuffer",
       });
-      
+
       const filename = this.getFilename(url);
       const filepath = path.join(this.pdfDir, filename);
       await fs.writeFile(filepath, response.data);
@@ -50,8 +50,10 @@ class ContentDownloader {
 
   async processResults() {
     try {
-      const data = JSON.parse(await fs.readFile('scraping-results.json', 'utf8'));
-      
+      const data = JSON.parse(
+        await fs.readFile("scraping-results.json", "utf8")
+      );
+
       // Download PDFs
       for (const pdfUrl of data.pdfs) {
         await this.downloadPdf(pdfUrl);
@@ -62,16 +64,17 @@ class ContentDownloader {
         await this.saveContent(page.content, page.url);
       }
 
-      console.log('Download completed successfully');
+      console.log("Download completed successfully");
     } catch (error) {
-      console.error('Error processing results:', error.message);
+      console.error("Error processing results:", error.message);
     }
   }
 }
 
 if (require.main === module) {
   const downloader = new ContentDownloader();
-  downloader.init()
+  downloader
+    .init()
     .then(() => downloader.processResults())
     .catch(console.error);
 }
