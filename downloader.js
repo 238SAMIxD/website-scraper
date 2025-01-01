@@ -6,11 +6,13 @@ const URLParse = require("url-parse");
 class ContentDownloader {
   constructor() {
     this.pdfDir = "./pdf";
+    this.txtDir = "./txt";
     this.contentDir = "./content";
   }
 
   async init() {
     await fs.mkdir(this.pdfDir, { recursive: true });
+    await fs.mkdir(this.txtDir, { recursive: true });
     await fs.mkdir(this.contentDir, { recursive: true });
   }
 
@@ -20,7 +22,7 @@ class ContentDownloader {
     return basename.replace(/[^a-z0-9.-]/gi, "_");
   }
 
-  async downloadPdf(url) {
+  async downloadFile(url, type = "pdf") {
     try {
       const response = await axios({
         url,
@@ -29,11 +31,14 @@ class ContentDownloader {
       });
 
       const filename = this.getFilename(url);
-      const filepath = path.join(this.pdfDir, filename);
+      const filepath = path.join(
+        type === "pdf" ? this.pdfDir : this.txtDir,
+        filename
+      );
       await fs.writeFile(filepath, response.data);
-      console.log(`Downloaded PDF: ${filename}`);
+      console.log(`Downloaded: ${filename}`);
     } catch (error) {
-      console.error(`Failed to download PDF ${url}:`, error.message);
+      console.error(`Failed to download ${url}:`, error.message);
     }
   }
 
@@ -56,7 +61,12 @@ class ContentDownloader {
 
       // Download PDFs
       for (const pdfUrl of data.pdfs) {
-        await this.downloadPdf(pdfUrl);
+        await this.downloadFile(pdfUrl);
+      }
+
+      // Download txts
+      for (const txtUrl of data.texts) {
+        await this.downloadFile(txtUrl, "txt");
       }
 
       // Save page contents

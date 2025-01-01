@@ -57,7 +57,11 @@
     "https://pg.edu.pl/files/eti/2021-03/d_Jurkiewicz.pdf",
     "https://pg.edu.pl/files/eti/2021-03/Appendix%203.pdf"
   ],
-  "texts": [],
+  "texts": [
+    "https://filesamples.com/samples/document/txt/sample1.txt",
+    "https://filesamples.com/samples/document/txt/sample2.txt",
+    "https://filesamples.com/samples/document/txt/sample3.txt"
+  ],
   "visitedPages": [
     "https://eti.pg.edu.pl/",
     "https://eti.pg.edu.pl/studenci",
