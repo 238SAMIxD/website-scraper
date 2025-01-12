@@ -1,13 +1,15 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 const URLParse = require("url-parse");
-const path = require("path");
 const fs = require("fs").promises;
+const { extractPageContent, minify } = require("./utils/dom-utils");
+const LinkCollector = require("./utils/link-collector");
 
-const LIMIT = 20;
+const BATCH_SIZE = 10;
+const LIMIT = 50;
 
 class WebScraper {
-  constructor(startUrl) {
+  constructor(startUrl, options = {}) {
     this.startUrl = startUrl;
     this.baseUrl = new URLParse(startUrl).origin;
     this.domain = new URLParse(startUrl).hostname;
@@ -17,24 +19,47 @@ class WebScraper {
       texts: new Set(),
     };
     this.results = [];
+    this.options = options;
+    this.linkCollector = new LinkCollector(this.baseUrl, this.domain);
   }
 
-  isValidUrl(url) {
+  async collectInitialLinks() {
+    console.log("Collecting initial links...");
+    const response = await axios.get(this.startUrl);
+    const $ = cheerio.load(response.data);
+
+    const { links, pdfs, texts } = this.linkCollector.collect($);
+    pdfs.forEach((pdf) => this.foundFiles.pdfs.add(pdf));
+    texts.forEach((text) => this.foundFiles.texts.add(text));
+
+    return links;
+  }
+
+  async processUrl(url) {
+    if (this.visitedUrls.has(url)) return;
+
+    console.log(`Processing: ${url}`);
+    this.visitedUrls.add(url);
+
     try {
-      new URL(url);
-      return true;
-    } catch {
-      return false;
+      const response = await axios.get(url);
+      const $ = cheerio.load(response.data);
+
+      // Extract content
+      const pageText = extractPageContent($, this.options.skipHeader);
+      this.results.push({ url, content: minify(pageText) });
+
+      // Collect new files
+      const { pdfs, texts } = this.linkCollector.collect($);
+      pdfs.forEach((pdf) => this.foundFiles.pdfs.add(pdf));
+      texts.forEach((text) => this.foundFiles.texts.add(text));
+    } catch (error) {
+      console.error(`Error processing ${url}:`, error.message);
     }
   }
 
-  isSameDomain(url) {
-    try {
-      const urlObj = new URLParse(url);
-      return urlObj.hostname === this.domain;
-    } catch {
-      return false;
-    }
+  async processBatch(urls) {
+    await Promise.all(urls.map((url) => this.processUrl(url)));
   }
 
   async saveResults() {
@@ -49,82 +74,49 @@ class WebScraper {
       "scraping-results.json",
       JSON.stringify(output, null, 2)
     );
+    console.log("Results saved");
   }
 
-  async scrape(url = this.startUrl) {
-    if (this.visitedUrls.has(url) || this.visitedUrls.size >= LIMIT) {
-      return;
-    }
-
-    console.log(`Scraping: ${url}`);
-    this.visitedUrls.add(url);
-
+  async scrape() {
     try {
-      const response = await axios.get(url);
-      const $ = cheerio.load(response.data);
+      // First collect all links from the initial page
+      const initialLinks = await this.collectInitialLinks();
 
-      // Extract text content
-      const pageText = $("body").text().trim();
-      this.results.push({
-        url,
-        content: pageText,
-      });
+      // Process the initial page
+      await this.processUrl(this.startUrl);
 
-      // Find all links
-      const links = new Set();
-      $("a").each((_, element) => {
-        let href = $(element).attr("href");
-        if (!href) return;
-
-        // Handle relative URLs
-        if (href.startsWith("/")) {
-          href = `${this.baseUrl}${href}`;
-        }
-
-        if (!this.isValidUrl(href)) return;
-
-        const ext = path.extname(href).toLowerCase();
-
-        // Collect PDF and text files
-        if (ext === ".pdf") {
-          this.foundFiles.pdfs.add(href);
-        } else if (ext === ".txt") {
-          this.foundFiles.texts.add(href);
-        } else if (this.isSameDomain(href)) {
-          links.add(href);
-        }
-      });
-
-      // Recursively scrape found links
-      for (const link of links) {
-        if (this.visitedUrls.size >= LIMIT) {
-          return;
-        }
-        if (!this.visitedUrls.has(link)) {
-          await this.scrape(link);
-        }
+      // Process remaining links in batches
+      for (
+        let i = 0;
+        i < initialLinks.length && this.visitedUrls.size < LIMIT;
+        i += BATCH_SIZE
+      ) {
+        const batch = initialLinks.slice(i, i + BATCH_SIZE);
+        await this.processBatch(batch);
+        await this.saveResults();
       }
 
-      await this.saveResults();
+      console.log("Scraping completed");
     } catch (error) {
-      console.error(`Error scraping ${url}:`, error.message);
+      console.error("Scraping failed:", error.message);
     }
   }
 }
 
-// Example usage
 if (require.main === module) {
-  const startUrl = process.argv[2];
+  const args = process.argv.slice(2);
+  const startUrl = args[0];
+  const options = {
+    skipHeader: args.includes("--skip-header"),
+  };
+
   if (!startUrl) {
     console.error("Please provide a starting URL");
     process.exit(1);
   }
 
-  const scraper = new WebScraper(startUrl);
-  scraper
-    .scrape()
-    .then(() => console.log("Scraping completed"))
-    .catch(console.error);
+  const scraper = new WebScraper(startUrl, options);
+  scraper.scrape().catch(console.error);
 }
 
 module.exports = WebScraper;
