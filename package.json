@@ -8,6 +8,7 @@
   "dependencies": {
     "axios": "^1.6.2",
     "cheerio": "^1.0.0-rc.12",
+    "html-pdf-node": "^1.0.8",
     "url-parse": "^1.5.10"
   }
 }
