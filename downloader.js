@@ -2,6 +2,7 @@ const axios = require("axios");
 const fs = require("fs").promises;
 const path = require("path");
 const URLParse = require("url-parse");
+const html_to_pdf = require("html-pdf-node");
 
 class ContentDownloader {
   constructor() {
@@ -44,10 +45,19 @@ class ContentDownloader {
 
   async saveContent(content, url) {
     try {
-      const filename = `${this.getFilename(url)}.txt`;
+      const filename = `${this.getFilename(url)}.pdf`;
       const filepath = path.join(this.contentDir, filename);
-      await fs.writeFile(filepath, content);
-      console.log(`Saved content: ${filename}`);
+      await html_to_pdf.generatePdf(
+        { url },
+        { format: "A4", landscape: true },
+        async (err, buffer) => {
+          if (err) {
+            throw new Error(err);
+          }
+          await fs.writeFile(filepath, buffer);
+          console.log(`Saved content: ${filename}`);
+        }
+      );
     } catch (error) {
       console.error(`Failed to save content for ${url}:`, error.message);
     }
