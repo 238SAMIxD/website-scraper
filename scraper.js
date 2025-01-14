@@ -24,7 +24,7 @@ class WebScraper {
   }
 
   async collectInitialLinks() {
-    console.log("Collecting initial links...");
+    console.log("Zbieranie początkowych odnośników...");
     const response = await axios.get(this.startUrl);
     const $ = cheerio.load(response.data);
 
@@ -54,7 +54,7 @@ class WebScraper {
       pdfs.forEach((pdf) => this.foundFiles.pdfs.add(pdf));
       texts.forEach((text) => this.foundFiles.texts.add(text));
     } catch (error) {
-      console.error(`Error processing ${url}:`, error.message);
+      console.error(`Błąd przy przetwarzaniu ${url}:`, error.message);
     }
   }
 
@@ -74,7 +74,7 @@ class WebScraper {
       "scraping-results.json",
       JSON.stringify(output, null, 2)
     );
-    console.log("Results saved");
+    console.log("Wyniki zapisane");
   }
 
   async scrape() {
@@ -96,9 +96,9 @@ class WebScraper {
         await this.saveResults();
       }
 
-      console.log("Scraping completed");
+      console.log("Spcrapowanie zakończone");
     } catch (error) {
-      console.error("Scraping failed:", error.message);
+      console.error("Błąd przy scrapowaniu:", error.message);
     }
   }
 }
@@ -111,7 +111,7 @@ if (require.main === module) {
   };
 
   if (!startUrl) {
-    console.error("Please provide a starting URL");
+    console.error("Podaj początkowy adres URL");
     process.exit(1);
   }
 

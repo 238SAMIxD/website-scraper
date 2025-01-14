@@ -37,9 +37,9 @@ class ContentDownloader {
         filename
       );
       await fs.writeFile(filepath, response.data);
-      console.log(`Downloaded: ${filename}`);
+      console.log(`Pobrano: ${filename}`);
     } catch (error) {
-      console.error(`Failed to download ${url}:`, error.message);
+      console.error(`Nie udało się pobrać ${url}:`, error.message);
     }
   }
 
@@ -55,11 +55,11 @@ class ContentDownloader {
             throw new Error(err);
           }
           await fs.writeFile(filepath, buffer);
-          console.log(`Saved content: ${filename}`);
+          console.log(`Zapisano: ${filename}`);
         }
       );
     } catch (error) {
-      console.error(`Failed to save content for ${url}:`, error.message);
+      console.error(`Nie udało się zapisać ${url}:`, error.message);
     }
   }
 
@@ -84,9 +84,9 @@ class ContentDownloader {
         await this.saveContent(page.content, page.url);
       }
 
-      console.log("Download completed successfully");
+      console.log("Pobieranie zakończone");
     } catch (error) {
-      console.error("Error processing results:", error.message);
+      console.error("Błąd przy przetwarzaniu plików:", error.message);
     }
   }
 }

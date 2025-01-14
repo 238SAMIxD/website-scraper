@@ -15,7 +15,7 @@ function extractPageContent($, skipHeader) {
 function minify(s) {
   return s
     ? s
-        .replace(/\>[\r\n ]+\</g, "><") // Removes new lines and irrelevant spaces which might affect layout, and are better gone
+        .replace(/\>[\r\n ]+\</g, "><")
         .replace(/(<.*?>)|\s+/g, (m, $1) => ($1 ? $1 : " "))
         .trim()
     : "";
